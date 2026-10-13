@@ -64,7 +64,9 @@
         powerPreference: 'high-performance',
         stencil: false
       });
-      this.basePR = Math.min(window.devicePixelRatio || 1, 2);
+      // 触屏设备（手机）默认像素比降到 1.5，避免中低端机型一开始就掉帧
+      this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+      this.basePR = Math.min(window.devicePixelRatio || 1, this.isTouchDevice ? 1.5 : 2);
       this.renderer.setPixelRatio(this.basePR);
       this.renderer.setSize(window.innerWidth, window.innerHeight, false);
       this.renderer.shadowMap.enabled = true;
@@ -107,6 +109,7 @@
       this.input = this._initInput();
       this._bindUI();
       this._onResize();
+      this._updateOrientation();
       window.addEventListener('resize', () => this._onResize());
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && this.state === STATE.PLAY) this.pause();
@@ -243,8 +246,80 @@
       window.addEventListener('blur', () => {
         st.left = st.right = false; st._jh = false; st._sl = false;
       });
-      // 触屏兜底：左右半屏点按 = 左/右，双击右侧 = 跳（不作为主要操作）
+      this._initTouch(st);
       return st;
+    }
+
+    /* -------------------------------------------------- 触屏操作
+     * · 左下 ◀ ▶ 按住持续横移（支持多指同时按）
+     * · 右下「跳跃」「滑铲」按钮 + 画面上滑/下滑手势
+     * 输入直接写进同一份输入状态，物理逻辑与键盘完全一致。
+     */
+    _initTouch(st) {
+      const body = document.body;
+      const touchCapable = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+      const markTouch = () => {
+        body.classList.add('is-touch');
+        this._updateOrientation();
+      };
+      if (touchCapable) markTouch();
+      window.addEventListener('touchstart', markTouch, { once: true, passive: true });
+      window.addEventListener('resize', () => this._updateOrientation());
+
+      // 按钮：按下即生效，抬起/移出/取消都算松开
+      const bind = (el, down, up) => {
+        if (!el) return;
+        const press = (e) => {
+          e.preventDefault();
+          if (el.setPointerCapture && e.pointerId !== undefined) {
+            try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+          }
+          el.classList.add('pressed');
+          down();
+        };
+        const release = () => {
+          el.classList.remove('pressed');
+          if (up) up();
+        };
+        el.addEventListener('pointerdown', press);
+        el.addEventListener('pointerup', release);
+        el.addEventListener('pointercancel', release);
+        el.addEventListener('lostpointercapture', release);
+        el.addEventListener('contextmenu', (e) => e.preventDefault());
+      };
+
+      const btns = document.querySelectorAll('#touch .t-btn');
+      btns.forEach((el) => {
+        const act = el.dataset.act;
+        if (act === 'left') bind(el, () => { st.left = true; }, () => { st.left = false; });
+        else if (act === 'right') bind(el, () => { st.right = true; }, () => { st.right = false; });
+        else if (act === 'jump') bind(el, () => { st._jp = true; st._jh = true; }, () => { st._jh = false; });
+        else if (act === 'slide') bind(el, () => { st._sl = true; }, () => { st._sl = false; });
+      });
+
+      // 画布手势：上滑跳跃 / 下滑滑铲
+      const canvas = $('game-canvas');
+      let sx = 0, sy = 0, moved = false;
+      canvas.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; moved = false; });
+      canvas.addEventListener('pointermove', (e) => {
+        if (moved) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.abs(dx) < 26 && Math.abs(dy) < 26) return;
+        moved = true;
+        if (dy < -26 && Math.abs(dy) > Math.abs(dx)) {
+          st._jp = true; st._jh = true;                 // 上滑：跳
+          setTimeout(() => { st._jh = false; }, 220);
+        } else if (dy > 26 && Math.abs(dy) > Math.abs(dx)) {
+          st._sl = true;                                 // 下滑：滑铲
+          setTimeout(() => { st._sl = false; }, 700);
+        }
+      });
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    _updateOrientation() {
+      const portrait = window.innerHeight > window.innerWidth * 1.05;
+      document.body.classList.toggle('is-portrait', portrait);
     }
 
     _readInput() {
@@ -665,16 +740,18 @@
       const spdN = M.clamp((this.player.speed - 13) / 17, 0, 1);
 
       // 目标位置：身后上方，横向部分跟随（留出前方视野）
+      // 竖屏视野窄，相机拉近一些，避免角色小得看不清
+      const narrow = this.camera.aspect < 1.05;
       const wantX = p.x * 0.92;
-      const wantY = p.y + 2.05;
-      const wantZ = p.z + 5.15 + spdN * 0.9;
+      const wantY = p.y + (narrow ? 1.95 : 2.05);
+      const wantZ = p.z + (narrow ? 4.85 : 5.15) + spdN * 0.9;
       this.camPos.x = M.damp(this.camPos.x, wantX, 6.5, dt);
       this.camPos.y = M.damp(this.camPos.y, wantY, this.player.grounded ? 5.0 : 2.6, dt);
       this.camPos.z = M.damp(this.camPos.z, wantZ, 9, dt);
 
       const lookX = p.x * 0.9;
-      const lookY = p.y + 1.15;
-      const lookZ = p.z - 6.4 - spdN * 2.4;
+      const lookY = p.y + (narrow ? 0.95 : 1.15);
+      const lookZ = p.z - (narrow ? 6.1 : 6.4) - spdN * 2.4;
       this.camLook.x = M.damp(this.camLook.x, lookX, 7, dt);
       this.camLook.y = M.damp(this.camLook.y, lookY, 4.5, dt);
       this.camLook.z = M.damp(this.camLook.z, lookZ, 9, dt);
@@ -687,9 +764,16 @@
       this.roll = M.damp(this.roll, wantRoll, 7, dt);
       this.camera.rotateZ(this.roll);
 
-      const wantFov = 62 + spdN * 9;
+      // 视角按「水平视角」恒定来算：three 的 fov 是垂直视角，
+      // 直接固定它会在大宽高比（手机横屏）下把水平视角顶到 110°+，角色小得像蚂蚁。
+      const aspect = this.camera.aspect || 1.6;
+      const targetH = 88 + spdN * 12;                                   // 期望水平视角
+      const vfov = 2 * Math.atan(Math.tan(targetH * Math.PI / 360) / aspect) * 180 / Math.PI;
+      const wantFov = M.clamp(vfov, 42, 68);
       this.camera.fov = M.damp(this.camera.fov, wantFov, 3, dt);
       this.camera.updateProjectionMatrix();
+      // 竖屏等窄视野下，世界空间飘字要相应缩小，否则会糊满屏幕
+      this.fx.popups.baseScale = M.clamp(aspect / 1.7, 0.5, 1.15);
 
       // 阴影相机跟随
       this.sun.position.set(p.x - 7, p.y + 30, p.z + 8);
@@ -740,7 +824,8 @@
 
     /* -------------------------------------------------- 自适应画质 */
     _adaptQuality() {
-      if (this.fps < 46) {
+      const lowBar = this.isTouchDevice ? 50 : 46;
+      if (this.fps < lowBar) {
         this._lowFrames = (this._lowFrames || 0) + 1;
         if (this.quality > 0.6 && this._lowFrames >= 2) {
           this.quality = 0.62;
@@ -748,7 +833,7 @@
           this.renderer.setPixelRatio(Math.min(1, this.basePR));
           this.renderer.shadowMap.enabled = false;
         }
-      } else if (this.fps > 57) {
+      } else if (this.fps > (this.isTouchDevice ? 58 : 57)) {
         this._lowFrames = 0;
         if (this.quality < 1) {
           this.quality = 1;

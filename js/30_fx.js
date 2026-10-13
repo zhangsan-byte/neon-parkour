@@ -441,6 +441,7 @@
       this.texCache = {};
       this.pool = [];
       this.max = 10;
+      this.baseScale = 1;      // 由游戏层按画面宽高比调整（竖屏时缩小）
     }
 
     _texture(text, colorHex) {
@@ -472,7 +473,7 @@
           map: this._texture(text, colorHex || NP.PAL.neon.cyan),
           transparent: true, depthWrite: false, depthTest: false, fog: false
         }));
-        sp.scale.set(1.7, 0.85, 1);
+        sp.scale.set(1.7 * this.baseScale, 0.85 * this.baseScale, 1);
         this.scene.add(sp);
       } else {
         sp.material.map = this._texture(text, colorHex || NP.PAL.neon.cyan);
@@ -499,7 +500,7 @@
         const t = it.life / it.max;
         it.sp.position.y += dt * 2.2;
         it.sp.position.z += dt * 1.2;
-        const s = 1.7 + t * 0.35;
+        const s = (1.7 + t * 0.35) * this.baseScale;
         it.sp.scale.set(s, s * 0.5, 1);
         it.sp.material.opacity = t < 0.15 ? t / 0.15 : 1 - Math.pow((t - 0.15) / 0.85, 1.6);
         if (t >= 1) {

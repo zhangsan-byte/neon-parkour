@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#cdeeff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="霓虹跑酷">
+<meta name="description" content="霓虹跑酷 NEON PARKOUR —— 第三人称 3D 霓虹卡通跑酷，电脑手机都能玩，纯前端离线可玩">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%237ff0d5%22/%3E%3Cstop%20offset=%22.55%22%20stop-color=%22%231fd8ff%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%23ff4fb8%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%2264%22%20height=%2264%22%20rx=%2217%22%20fill=%22url(%23g)%22/%3E%3Ccircle%20cx=%2232%22%20cy=%2227%22%20r=%2214%22%20fill=%22%23fff6e9%22/%3E%3Crect%20x=%2219%22%20y=%2223%22%20width=%2226%22%20height=%228%22%20rx=%224%22%20fill=%22%233a3a7a%22/%3E%3Crect%20x=%2223%22%20y=%2225.5%22%20width=%2218%22%20height=%223%22%20rx=%221.5%22%20fill=%22%234ff0ff%22/%3E%3Crect%20x=%2221%22%20y=%2245%22%20width=%2222%22%20height=%227%22%20rx=%223.5%22%20fill=%22%23ffffff%22%20opacity=%22.9%22/%3E%3Ccircle%20cx=%2247%22%20cy=%2214%22%20r=%224%22%20fill=%22%23ff4fb8%22/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%237ff0d5%22/%3E%3Cstop%20offset=%22.55%22%20stop-color=%22%231fd8ff%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%23ff4fb8%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%2264%22%20height=%2264%22%20rx=%2217%22%20fill=%22url(%23g)%22/%3E%3Ccircle%20cx=%2232%22%20cy=%2227%22%20r=%2214%22%20fill=%22%23fff6e9%22/%3E%3Crect%20x=%2219%22%20y=%2223%22%20width=%2226%22%20height=%228%22%20rx=%224%22%20fill=%22%233a3a7a%22/%3E%3Crect%20x=%2223%22%20y=%2225.5%22%20width=%2218%22%20height=%223%22%20rx=%221.5%22%20fill=%22%234ff0ff%22/%3E%3Crect%20x=%2221%22%20y=%2245%22%20width=%2222%22%20height=%227%22%20rx=%223.5%22%20fill=%22%23ffffff%22%20opacity=%22.9%22/%3E%3Ccircle%20cx=%2247%22%20cy=%2214%22%20r=%224%22%20fill=%22%23ff4fb8%22/%3E%3C/svg%3E">
 <!-- 单文件版：three.js 与全部逻辑已内联，可离线双击运行 -->
 <title>霓虹跑酷 NEON PARKOUR · 3D 卡通跑酷</title>
 <style>
@@ -222,6 +229,86 @@
   #menu-best{color:var(--pink);font-size:18px}
   .footer-note{margin-top:10px;font-size:11px;color:var(--ink-soft);opacity:.85;text-align:center}
   body[data-state="playing"] .overlay,body[data-state="countdown"] .overlay{display:none!important}
+
+  /* ============================================================ 触屏 / 移动端 */
+  /* 移动端浏览器：禁用长按菜单、双击缩放与橡皮筋滚动 */
+  html, body { -webkit-user-select: none; -webkit-touch-callout: none; overscroll-behavior: none; }
+  #game-canvas, #touch, .overlay { touch-action: none; }
+  .overlay { touch-action: pan-y; }
+
+  /* 弹出面板补上 Safari 的前缀 */
+  .hud-card, .overlay { -webkit-backdrop-filter: blur(14px) saturate(1.3); }
+
+  #touch { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+    padding: 0 14px calc(14px + env(safe-area-inset-bottom)) 14px;
+    justify-content: space-between; align-items: flex-end; pointer-events: none; }
+  body.is-touch #touch { display: flex; }
+  .t-pad { display: flex; gap: 12px; align-items: flex-end; pointer-events: none; }
+  .t-pad-right { gap: 14px; }
+  .t-btn {
+    pointer-events: auto; -webkit-tap-highlight-color: transparent; touch-action: none;
+    border: 2px solid rgba(255,255,255,.92); border-radius: 50%;
+    width: 78px; height: 78px; font: 900 15px/1 inherit; color: var(--ink);
+    background: rgba(255,255,255,.5); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: 0 8px 22px rgba(122,110,168,.28), inset 0 -3px 0 rgba(122,110,168,.12);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .08s, background .12s; user-select: none;
+  }
+  .t-btn.t-move { font-size: 24px; }
+  .t-btn.t-jump { width: 96px; height: 96px; font-size: 17px; color: #fff;
+    background: linear-gradient(150deg, rgba(31,216,255,.92), rgba(157,107,255,.92) 60%, rgba(255,79,184,.92)); }
+  .t-btn.t-slide { width: 70px; height: 70px; font-size: 14px;
+    background: rgba(255,255,255,.62); color: var(--purple); }
+  .t-btn.pressed { transform: scale(.92); background: rgba(31,216,255,.75); color: #fff; }
+  .t-btn.t-jump.pressed { transform: scale(.92); filter: brightness(1.1); }
+
+  /* 竖屏时给个提示 */
+  #rotate-hint { display: none; position: fixed; left: 50%; top: 12px; transform: translateX(-50%);
+    z-index: 13; font-size: 12px; font-weight: 700; color: var(--ink);
+    background: rgba(255,255,255,.8); border-radius: 999px; padding: 6px 14px;
+    box-shadow: 0 6px 16px rgba(122,110,168,.2); pointer-events: none; }
+  body.is-touch.is-portrait #rotate-hint { display: block; }
+  body.is-touch.is-portrait #rotate-hint { animation: hintFade 4s ease forwards 3s; }
+  @keyframes hintFade { to { opacity: 0; visibility: hidden } }
+
+  /* 触屏设备上的 HUD 让位：生命与速度条上移，避让按键 */
+  body.is-touch #hud-lives { bottom: 118px; left: 18px; font-size: 22px; }
+  body.is-touch #hud-speed { bottom: 128px; width: 122px; }
+  body.is-touch #hud-speed .label { font-size: 10px; letter-spacing: .1em; }
+  body.is-touch #hud-speed-num { font-size: 13px; }
+  body.is-touch #hud-left { top: 12px; left: 12px; min-width: 150px; padding: 10px 14px; }
+  body.is-touch #hud-score { font-size: 27px; }
+  body.is-touch #hud-right { top: 12px; right: 12px; }
+  body.is-touch .hud-btn { padding: 8px 12px; font-size: 12px; }
+
+  /* 窄屏（手机竖屏 / 小窗口）整体缩放 */
+  @media (max-width: 620px) {
+    #hud-left { min-width: 140px; padding: 9px 12px; }
+    #hud-score { font-size: 26px; }
+    #hud-sub { font-size: 11px; gap: 9px; margin-top: 4px; }
+    #hud-speed { width: 132px; }
+    #hud-combo { font-size: 24px; }
+    .panel { width: 94vw; padding: 18px 16px 20px; border-radius: 20px; }
+    .keys .row { font-size: 12.5px; gap: 8px; }
+    .tips { font-size: 12.5px; line-height: 1.55; padding: 10px 12px; }
+    button.big { min-width: 0; padding: 14px 18px; font-size: 15px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat .v { font-size: 19px; }
+    #over-score-big { font-size: 42px; }
+    .board-row { grid-template-columns: 26px 1fr auto 0.8fr; gap: 6px; padding: 8px 10px; }
+    .b-score { font-size: 15px; }
+    .b-meta { display: none; }
+    h1 { font-size: 36px; }
+  }
+  .hint-touch { display: none; }
+  body.is-touch .hint-kbd { display: none; }
+  body.is-touch .hint-touch { display: grid; }
+  .tchip { display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 28px; padding: 0 9px; border-radius: 9px; font-size: 12px; font-weight: 800;
+    background: linear-gradient(180deg, #fff, #eef3ff); border: 1.5px solid #fff;
+    box-shadow: 0 3px 0 #d8def7; color: var(--purple); }
+  .tchip.big { min-width: 44px; }
+
 </style>
 </head>
 <body data-state="menu">
@@ -241,6 +328,7 @@
     <div id="hud-right">
       <div id="hud-best-wrap">最高分 <span id="hud-best" class="num">0</span></div>
       <button class="hud-btn" id="btn-sound">🔊 音效开 (M)</button>
+      <button class="hud-btn" id="btn-pause">⏸ 暂停 (P)</button>
     </div>
 
     <div id="hud-lives">
@@ -254,23 +342,41 @@
     </div>
 
     <div id="hud-combo">x1</div>
-    <button class="hud-btn" id="btn-pause" style="position:absolute;right:22px;bottom:96px">⏸ 暂停 (P)</button>
   </div>
 
   <div id="count"></div>
   <div id="flash"></div>
   <div id="fps"></div>
 
+  <!-- ===================== 触屏操作（移动端自动显示） ===================== -->
+  <div id="touch">
+    <div class="t-pad">
+      <button class="t-btn t-move" data-act="left" aria-label="左移">◀</button>
+      <button class="t-btn t-move" data-act="right" aria-label="右移">▶</button>
+    </div>
+    <div class="t-pad t-pad-right">
+      <button class="t-btn t-slide" data-act="slide" aria-label="滑铲">滑铲</button>
+      <button class="t-btn t-jump" data-act="jump" aria-label="跳跃">跳跃</button>
+    </div>
+  </div>
+  <div id="rotate-hint">↻ 把手机横过来玩更舒服</div>
+
   <!-- ============================= 开始菜单 ============================= -->
   <div class="overlay show" id="menu">
     <div class="panel">
       <h1>霓虹跑酷</h1>
       <p class="sub">N E O N &nbsp; P A R K O U R</p>
-      <div class="keys">
+      <div class="keys hint-kbd">
         <div class="row"><kbd>←</kbd><kbd>→</kbd> <span class="d">/ <kbd>A</kbd><kbd>D</kbd> — 左右横移</span></div>
         <div class="row"><kbd>空格</kbd> <span class="d">/ <kbd>W</kbd><kbd>↑</kbd> — 跳跃，空中再按一次触发二段跳</span></div>
         <div class="row"><kbd>↓</kbd> <span class="d">/ <kbd>S</kbd><kbd>Shift</kbd> — 滑铲，钻过霓虹横杆</span></div>
         <div class="row"><kbd>P</kbd> <span class="d">/ <kbd>Esc</kbd> — 暂停 · <kbd>M</kbd> — 静音 · <kbd>R</kbd> — 重开 · <kbd>F</kbd> — 性能信息</span></div>
+      </div>
+      <div class="keys hint-touch">
+        <div class="row"><span class="tchip">◀</span><span class="tchip">▶</span> <span class="d">左右横移（按住不放持续移动）</span></div>
+        <div class="row"><span class="tchip big">跳跃</span> <span class="d">点一下起跳，空中再点一次触发二段跳</span></div>
+        <div class="row"><span class="tchip big">滑铲</span> <span class="d">按住钻过霓虹横杆</span></div>
+        <div class="row"><span class="tchip">↻</span> <span class="d">横屏体验更好，也可以上滑跳跃 / 下滑滑铲</span></div>
       </div>
       <div class="tips">
         顺着糖果赛道向前冲刺：<b>跳过路障</b>、<b>滑铲钻杆</b>、<b>左右绕开霓虹墩</b>，
@@ -1641,6 +1747,7 @@ window.NP = window.NP || {};
       this.texCache = {};
       this.pool = [];
       this.max = 10;
+      this.baseScale = 1;      // 由游戏层按画面宽高比调整（竖屏时缩小）
     }
 
     _texture(text, colorHex) {
@@ -1672,7 +1779,7 @@ window.NP = window.NP || {};
           map: this._texture(text, colorHex || NP.PAL.neon.cyan),
           transparent: true, depthWrite: false, depthTest: false, fog: false
         }));
-        sp.scale.set(1.7, 0.85, 1);
+        sp.scale.set(1.7 * this.baseScale, 0.85 * this.baseScale, 1);
         this.scene.add(sp);
       } else {
         sp.material.map = this._texture(text, colorHex || NP.PAL.neon.cyan);
@@ -1699,7 +1806,7 @@ window.NP = window.NP || {};
         const t = it.life / it.max;
         it.sp.position.y += dt * 2.2;
         it.sp.position.z += dt * 1.2;
-        const s = 1.7 + t * 0.35;
+        const s = (1.7 + t * 0.35) * this.baseScale;
         it.sp.scale.set(s, s * 0.5, 1);
         it.sp.material.opacity = t < 0.15 ? t / 0.15 : 1 - Math.pow((t - 0.15) / 0.85, 1.6);
         if (t >= 1) {
@@ -3183,7 +3290,9 @@ window.NP = window.NP || {};
         powerPreference: 'high-performance',
         stencil: false
       });
-      this.basePR = Math.min(window.devicePixelRatio || 1, 2);
+      // 触屏设备（手机）默认像素比降到 1.5，避免中低端机型一开始就掉帧
+      this.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+      this.basePR = Math.min(window.devicePixelRatio || 1, this.isTouchDevice ? 1.5 : 2);
       this.renderer.setPixelRatio(this.basePR);
       this.renderer.setSize(window.innerWidth, window.innerHeight, false);
       this.renderer.shadowMap.enabled = true;
@@ -3226,6 +3335,7 @@ window.NP = window.NP || {};
       this.input = this._initInput();
       this._bindUI();
       this._onResize();
+      this._updateOrientation();
       window.addEventListener('resize', () => this._onResize());
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && this.state === STATE.PLAY) this.pause();
@@ -3362,8 +3472,80 @@ window.NP = window.NP || {};
       window.addEventListener('blur', () => {
         st.left = st.right = false; st._jh = false; st._sl = false;
       });
-      // 触屏兜底：左右半屏点按 = 左/右，双击右侧 = 跳（不作为主要操作）
+      this._initTouch(st);
       return st;
+    }
+
+    /* -------------------------------------------------- 触屏操作
+     * · 左下 ◀ ▶ 按住持续横移（支持多指同时按）
+     * · 右下「跳跃」「滑铲」按钮 + 画面上滑/下滑手势
+     * 输入直接写进同一份输入状态，物理逻辑与键盘完全一致。
+     */
+    _initTouch(st) {
+      const body = document.body;
+      const touchCapable = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+      const markTouch = () => {
+        body.classList.add('is-touch');
+        this._updateOrientation();
+      };
+      if (touchCapable) markTouch();
+      window.addEventListener('touchstart', markTouch, { once: true, passive: true });
+      window.addEventListener('resize', () => this._updateOrientation());
+
+      // 按钮：按下即生效，抬起/移出/取消都算松开
+      const bind = (el, down, up) => {
+        if (!el) return;
+        const press = (e) => {
+          e.preventDefault();
+          if (el.setPointerCapture && e.pointerId !== undefined) {
+            try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+          }
+          el.classList.add('pressed');
+          down();
+        };
+        const release = () => {
+          el.classList.remove('pressed');
+          if (up) up();
+        };
+        el.addEventListener('pointerdown', press);
+        el.addEventListener('pointerup', release);
+        el.addEventListener('pointercancel', release);
+        el.addEventListener('lostpointercapture', release);
+        el.addEventListener('contextmenu', (e) => e.preventDefault());
+      };
+
+      const btns = document.querySelectorAll('#touch .t-btn');
+      btns.forEach((el) => {
+        const act = el.dataset.act;
+        if (act === 'left') bind(el, () => { st.left = true; }, () => { st.left = false; });
+        else if (act === 'right') bind(el, () => { st.right = true; }, () => { st.right = false; });
+        else if (act === 'jump') bind(el, () => { st._jp = true; st._jh = true; }, () => { st._jh = false; });
+        else if (act === 'slide') bind(el, () => { st._sl = true; }, () => { st._sl = false; });
+      });
+
+      // 画布手势：上滑跳跃 / 下滑滑铲
+      const canvas = $('game-canvas');
+      let sx = 0, sy = 0, moved = false;
+      canvas.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; moved = false; });
+      canvas.addEventListener('pointermove', (e) => {
+        if (moved) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.abs(dx) < 26 && Math.abs(dy) < 26) return;
+        moved = true;
+        if (dy < -26 && Math.abs(dy) > Math.abs(dx)) {
+          st._jp = true; st._jh = true;                 // 上滑：跳
+          setTimeout(() => { st._jh = false; }, 220);
+        } else if (dy > 26 && Math.abs(dy) > Math.abs(dx)) {
+          st._sl = true;                                 // 下滑：滑铲
+          setTimeout(() => { st._sl = false; }, 700);
+        }
+      });
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    _updateOrientation() {
+      const portrait = window.innerHeight > window.innerWidth * 1.05;
+      document.body.classList.toggle('is-portrait', portrait);
     }
 
     _readInput() {
@@ -3784,16 +3966,18 @@ window.NP = window.NP || {};
       const spdN = M.clamp((this.player.speed - 13) / 17, 0, 1);
 
       // 目标位置：身后上方，横向部分跟随（留出前方视野）
+      // 竖屏视野窄，相机拉近一些，避免角色小得看不清
+      const narrow = this.camera.aspect < 1.05;
       const wantX = p.x * 0.92;
-      const wantY = p.y + 2.05;
-      const wantZ = p.z + 5.15 + spdN * 0.9;
+      const wantY = p.y + (narrow ? 1.95 : 2.05);
+      const wantZ = p.z + (narrow ? 4.85 : 5.15) + spdN * 0.9;
       this.camPos.x = M.damp(this.camPos.x, wantX, 6.5, dt);
       this.camPos.y = M.damp(this.camPos.y, wantY, this.player.grounded ? 5.0 : 2.6, dt);
       this.camPos.z = M.damp(this.camPos.z, wantZ, 9, dt);
 
       const lookX = p.x * 0.9;
-      const lookY = p.y + 1.15;
-      const lookZ = p.z - 6.4 - spdN * 2.4;
+      const lookY = p.y + (narrow ? 0.95 : 1.15);
+      const lookZ = p.z - (narrow ? 6.1 : 6.4) - spdN * 2.4;
       this.camLook.x = M.damp(this.camLook.x, lookX, 7, dt);
       this.camLook.y = M.damp(this.camLook.y, lookY, 4.5, dt);
       this.camLook.z = M.damp(this.camLook.z, lookZ, 9, dt);
@@ -3806,9 +3990,16 @@ window.NP = window.NP || {};
       this.roll = M.damp(this.roll, wantRoll, 7, dt);
       this.camera.rotateZ(this.roll);
 
-      const wantFov = 62 + spdN * 9;
+      // 视角按「水平视角」恒定来算：three 的 fov 是垂直视角，
+      // 直接固定它会在大宽高比（手机横屏）下把水平视角顶到 110°+，角色小得像蚂蚁。
+      const aspect = this.camera.aspect || 1.6;
+      const targetH = 88 + spdN * 12;                                   // 期望水平视角
+      const vfov = 2 * Math.atan(Math.tan(targetH * Math.PI / 360) / aspect) * 180 / Math.PI;
+      const wantFov = M.clamp(vfov, 42, 68);
       this.camera.fov = M.damp(this.camera.fov, wantFov, 3, dt);
       this.camera.updateProjectionMatrix();
+      // 竖屏等窄视野下，世界空间飘字要相应缩小，否则会糊满屏幕
+      this.fx.popups.baseScale = M.clamp(aspect / 1.7, 0.5, 1.15);
 
       // 阴影相机跟随
       this.sun.position.set(p.x - 7, p.y + 30, p.z + 8);
@@ -3859,7 +4050,8 @@ window.NP = window.NP || {};
 
     /* -------------------------------------------------- 自适应画质 */
     _adaptQuality() {
-      if (this.fps < 46) {
+      const lowBar = this.isTouchDevice ? 50 : 46;
+      if (this.fps < lowBar) {
         this._lowFrames = (this._lowFrames || 0) + 1;
         if (this.quality > 0.6 && this._lowFrames >= 2) {
           this.quality = 0.62;
@@ -3867,7 +4059,7 @@ window.NP = window.NP || {};
           this.renderer.setPixelRatio(Math.min(1, this.basePR));
           this.renderer.shadowMap.enabled = false;
         }
-      } else if (this.fps > 57) {
+      } else if (this.fps > (this.isTouchDevice ? 58 : 57)) {
         this._lowFrames = 0;
         if (this.quality < 1) {
           this.quality = 1;

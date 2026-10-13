@@ -377,6 +377,7 @@ async function main() {
         p.pos.set(cx, topY+0.05, box.maxZ+back);
         p.vel.set(0,0,0); p.sliding=false; p.slideTimer=0; p.speed=13; p.jumpsLeft=2;
         p.grounded=true; p.invuln=0; p.height=1.56; p.hurtT=0; g.lives=3;
+        p.alive = true;              // 前面的场景可能已经把角色玩死（alive=false 会跳过扣血判定）
         return topY;
       };
       const out={};

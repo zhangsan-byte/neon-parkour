@@ -2210,7 +2210,9 @@ window.NP = window.NP || {};
       const bar = new THREE.Mesh(NP.geo.roundedBox(w, 0.4, 0.5, 0.16), NP.mat.neon(PAL.neon.cyan));
       bar.position.y = barY + 0.2;
       g.add(bar);
-      const glow = NP.makeGlowQuad(PAL.neon.cyan, w * 1.05, 2.4, 0.32);
+      // 辉光片高度贴近实际判定区（0.4），否则视觉上的"危险区"比碰撞盒厚好几倍，
+      // 玩家会误以为滑铲过不去
+      const glow = NP.makeGlowQuad(PAL.neon.cyan, w * 1.05, 1.05, 0.3);
       glow.position.set(0, barY + 0.2, 0.35);
       g.add(glow);
       [-1, 1].forEach((s) => {
@@ -2694,7 +2696,8 @@ window.NP = window.NP || {};
   const SLIDE_TIME = 0.85;    // 滑铲时长
   const SLIDE_BOOST = 1.16;   // 滑铲加速
   const STAND_H = 1.56;       // 站立碰撞高
-  const SLIDE_H = 0.82;       // 滑铲碰撞高
+  const SLIDE_H = 0.95;       // 滑铲碰撞高（略高于放平后的模型，避免视觉穿模）
+  const SLIDE_LEAN = -1.2;    // 滑铲时身体放平角（弧度，≈69°），模型最高点约 0.92
   const HALF_W = 0.42;        // 碰撞半宽
   const STEP_UP = 0.62;       // 台阶宽容
   const FALL_LIMIT = 6.5;     // 相对最后落脚平台的下坠判定
@@ -2734,6 +2737,7 @@ window.NP = window.NP || {};
       this.squashV = 0;
       this.hurtT = 0;
       this.wind = 0;
+      this.slideSquash = 1;
 
       // 事件回调（由游戏层挂载）
       this.onLand = null;
@@ -2885,6 +2889,7 @@ window.NP = window.NP || {};
       this.flip = 0; this.flipActive = false;
       this.hurtT = 0;
       this.height = STAND_H;
+      this.slideSquash = 1;
       this.body.rotation.set(0, 0, 0);
       this.body.scale.set(1, 1, 1);
       this._resetScarf();
@@ -3147,13 +3152,18 @@ window.NP = window.NP || {};
       this.squash += this.squashV * dt;
       this.squash = M.clamp(this.squash, -0.45, 0.4);
 
-      const sy = 1 + this.squash;
-      const sxz = 1 - this.squash * 0.45;
+      // 滑铲时整体轻微收缩：放平后模型的"厚度"仍接近 1.05，
+      // 收缩 8% 才能稳定从 1.12 高的横杆下沿钻过去。
+      this.slideSquash = M.damp(this.slideSquash, this.sliding ? 0.92 : 1, 22, dt);
+      const sy = (1 + this.squash) * this.slideSquash;
+      const sxz = (1 - this.squash * 0.45) * this.slideSquash;
       b.scale.set(sxz, sy, sxz);
 
-      // 前倾 & 侧倾
-      const leanTarget = airborne ? (this.vel.y > 0 ? 0.16 : -0.12) : 0.1 + spdN * 0.16;
-      b.rotation.x = M.damp(b.rotation.x, leanTarget, 9, dt);
+      // 前倾 & 侧倾（滑铲时改为"放平"，见下方常量 SLIDE_LEAN）
+      const leanTarget = this.sliding
+        ? SLIDE_LEAN
+        : (airborne ? (this.vel.y > 0 ? 0.16 : -0.12) : 0.1 + spdN * 0.16);
+      b.rotation.x = M.damp(b.rotation.x, leanTarget, this.sliding ? 30 : 9, dt);
       b.rotation.z = M.damp(b.rotation.z, -this.vel.x * 0.028, 8, dt);
       b.rotation.y = M.damp(b.rotation.y, -this.vel.x * 0.016, 8, dt);
 
@@ -3184,9 +3194,16 @@ window.NP = window.NP || {};
 
       // 肢体
       if (this.sliding) {
-        this.legs[0].rotation.x = -1.5; this.legs[1].rotation.x = -1.15;
-        this.arms[0].rotation.x = -1.9; this.arms[1].rotation.x = -1.7;
-        b.position.y = -0.32;
+        // 真正的滑铲姿态：身体几乎放平（约 69°），头前脚后贴地滑行。
+        // 这样模型最高点约 0.9，能实实在在从霓虹横杆（下沿 1.12）底下钻过去，
+        // 而不是"站着穿模"。
+        // 角度按"身体已放平 SLIDE_LEAN"反推：
+        // 肢体总角 ≈ -1.5 表示贴地拖后，≈ +1.4 表示贴地前伸
+        this.legs[0].rotation.x = M.damp(this.legs[0].rotation.x, 2.5, 26, dt);    // 前腿前伸
+        this.legs[1].rotation.x = M.damp(this.legs[1].rotation.x, -0.35, 26, dt);  // 后腿拖地
+        this.arms[0].rotation.x = M.damp(this.arms[0].rotation.x, 2.3, 26, dt);    // 一只手向前撑
+        this.arms[1].rotation.x = M.damp(this.arms[1].rotation.x, -0.4, 26, dt);   // 另一只手向后甩
+        b.position.y = M.damp(b.position.y, 0, 14, dt);
       } else if (airborne) {
         const up = this.vel.y > 0;
         this.legs[0].rotation.x = M.damp(this.legs[0].rotation.x, up ? -1.15 : -0.35, 12, dt);

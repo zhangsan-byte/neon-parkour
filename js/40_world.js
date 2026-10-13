@@ -333,7 +333,9 @@
       const bar = new THREE.Mesh(NP.geo.roundedBox(w, 0.4, 0.5, 0.16), NP.mat.neon(PAL.neon.cyan));
       bar.position.y = barY + 0.2;
       g.add(bar);
-      const glow = NP.makeGlowQuad(PAL.neon.cyan, w * 1.05, 2.4, 0.32);
+      // 辉光片高度贴近实际判定区（0.4），否则视觉上的"危险区"比碰撞盒厚好几倍，
+      // 玩家会误以为滑铲过不去
+      const glow = NP.makeGlowQuad(PAL.neon.cyan, w * 1.05, 1.05, 0.3);
       glow.position.set(0, barY + 0.2, 0.35);
       g.add(glow);
       [-1, 1].forEach((s) => {

@@ -1,0 +1,6 @@
+# 统一行尾，避免 Windows 检出时脚本被改成 CRLF（.sh 在 Linux/macOS 会因此报错）
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.zip binary
+*.ico binary

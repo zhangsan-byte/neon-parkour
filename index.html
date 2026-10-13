@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>霓虹跑酷 NEON PARKOUR · 3D 卡通跑酷</title>
+<style>
+  /* ============================================================ 基础 */
+  :root{
+    --ink:#4a3f75;
+    --ink-soft:#7a6ea8;
+    --cyan:#1fd8ff;
+    --pink:#ff4fb8;
+    --purple:#9d6bff;
+    --mint:#7ff0d5;
+    --lemon:#ffd23f;
+    --coral:#ff8a6b;
+    --panel:rgba(255,255,255,.78);
+    --panel-strong:rgba(255,255,255,.92);
+    --shadow:0 18px 44px rgba(122,110,168,.28);
+    --radius:24px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overflow:hidden;background:linear-gradient(180deg,#9ee2ff,#ffe4f3)}
+  body{
+    font-family:"Segoe UI Variable Display","Segoe UI",system-ui,"Microsoft YaHei","PingFang SC",sans-serif;
+    color:var(--ink);
+    user-select:none;
+    touch-action:none;
+    -webkit-font-smoothing:antialiased;
+  }
+  #game-canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ============================================================ HUD */
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .35s ease}
+  #hud.show{opacity:1}
+  .hud-card{
+    position:absolute;background:var(--panel);backdrop-filter:blur(14px) saturate(1.3);
+    border-radius:20px;padding:12px 18px;box-shadow:var(--shadow);
+    border:1.5px solid rgba(255,255,255,.9);
+  }
+  #hud-left{top:18px;left:18px;min-width:190px}
+  #hud-left .label{font-size:11px;letter-spacing:.18em;color:var(--ink-soft);font-weight:700}
+  #hud-score{font-size:34px;font-weight:800;line-height:1.05;color:var(--ink);
+    text-shadow:0 2px 0 #fff,0 0 18px rgba(31,216,255,.55)}
+  #hud-sub{display:flex;gap:14px;margin-top:6px;font-size:13px;font-weight:700;color:var(--ink-soft)}
+  #hud-sub b{color:var(--cyan);text-shadow:0 0 10px rgba(31,216,255,.5)}
+  #hud-right{top:18px;right:18px;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto}
+  .hud-btn{
+    pointer-events:auto;border:none;cursor:pointer;font:inherit;font-weight:700;font-size:13px;
+    background:var(--panel-strong);color:var(--ink);border-radius:999px;padding:9px 15px;
+    box-shadow:0 8px 20px rgba(122,110,168,.22);transition:transform .12s,box-shadow .2s;
+  }
+  .hud-btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(122,110,168,.3)}
+  .hud-btn:active{transform:scale(.96)}
+  #hud-best-wrap{font-size:12px;font-weight:700;color:var(--ink-soft)}
+  #hud-best{color:var(--pink)}
+  #hud-lives{position:absolute;left:22px;bottom:20px;display:flex;gap:6px;font-size:26px;line-height:1}
+  .heart{color:#ff5f8d;text-shadow:0 0 14px rgba(255,95,141,.8),0 2px 0 #fff;transition:.25s}
+  .heart.lost{color:rgba(122,110,168,.28);text-shadow:none;transform:scale(.82)}
+  #hud-speed{position:absolute;right:22px;bottom:22px;width:190px;text-align:right}
+  #hud-speed .label{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--ink-soft)}
+  #hud-speed-num{font-size:15px;font-weight:800;color:var(--purple)}
+  #hud-speed-track{margin-top:6px;height:10px;border-radius:999px;background:rgba(255,255,255,.75);
+    box-shadow:inset 0 1px 3px rgba(122,110,168,.35);overflow:hidden}
+  #hud-speed-fill{height:100%;width:20%;border-radius:999px;
+    background:linear-gradient(90deg,var(--mint),var(--cyan) 45%,var(--pink));
+    box-shadow:0 0 14px rgba(31,216,255,.75);transition:width .12s linear}
+  #hud-combo{
+    position:absolute;left:50%;top:16px;transform:translate(-50%,-16px) scale(.8);
+    font-size:30px;font-weight:900;color:var(--pink);opacity:0;transition:.2s;
+    text-shadow:0 2px 0 #fff,0 0 22px rgba(255,79,184,.85);
+  }
+  #hud-combo.show{opacity:1;transform:translate(-50%,0) scale(1)}
+  #hud-combo.hot{color:var(--lemon);text-shadow:0 2px 0 #fff,0 0 26px rgba(255,210,63,.95)}
+  #hud-combo::after{
+    content:"";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);
+    width:calc(var(--cd,1) * 76px);height:5px;border-radius:999px;
+    background:currentColor;opacity:.75;box-shadow:0 0 10px currentColor;
+  }
+
+  #fps{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);display:none;
+    font:600 11px/1 ui-monospace,Consolas,monospace;color:var(--ink-soft);
+    background:rgba(255,255,255,.7);padding:5px 10px;border-radius:999px;z-index:60}
+
+  /* 倒计时 / 提示大字 */
+  #count{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.4);
+    font-size:clamp(72px,15vw,170px);font-weight:900;color:#fff;opacity:0;z-index:30;
+    pointer-events:none;text-shadow:0 0 30px var(--cyan),0 0 70px var(--pink),0 6px 0 rgba(74,63,117,.25)}
+  #count.show{opacity:1;animation:countPop .6s ease-out}
+  @keyframes countPop{
+    0%{transform:translate(-50%,-50%) scale(.4);opacity:0}
+    35%{transform:translate(-50%,-50%) scale(1.15);opacity:1}
+    100%{transform:translate(-50%,-50%) scale(1.55);opacity:0}
+  }
+  #flash{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%);
+    font-size:clamp(24px,4.4vw,48px);font-weight:900;opacity:0;z-index:31;pointer-events:none;
+    text-shadow:0 2px 0 #fff,0 0 24px currentColor}
+  #flash.pop{animation:flashUp .95s ease-out}
+  @keyframes flashUp{
+    0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+    25%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+    100%{opacity:0;transform:translate(-50%,-95%) scale(1)}
+  }
+
+  /* ============================================================ 弹层 */
+  .overlay{
+    position:fixed;inset:0;z-index:20;display:none;place-items:center;
+    background:radial-gradient(120% 100% at 50% 0%,rgba(255,255,255,.28),rgba(160,180,255,.36));
+    backdrop-filter:blur(3px);padding:20px;overflow:auto;
+  }
+  .overlay.show{display:grid;animation:fadeIn .3s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .panel{
+    width:min(620px,94vw);background:var(--panel-strong);border-radius:var(--radius);
+    padding:clamp(20px,3.4vw,34px);box-shadow:var(--shadow);border:2px solid #fff;
+    position:relative;overflow:hidden;animation:panelIn .42s cubic-bezier(.2,1.3,.4,1);
+  }
+  @keyframes panelIn{from{transform:translateY(26px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+  .panel::before{
+    content:"";position:absolute;inset:-2px auto auto -2px;right:-2px;height:7px;
+    background:linear-gradient(90deg,var(--mint),var(--cyan),var(--purple),var(--pink),var(--lemon));
+    background-size:200% 100%;animation:slide 6s linear infinite;
+  }
+  @keyframes slide{to{background-position:200% 0}}
+  h1{margin:.1em 0 .1em;font-size:clamp(34px,6.4vw,54px);line-height:1.02;font-weight:900;letter-spacing:.02em;
+    background:linear-gradient(92deg,#1fd8ff,#9d6bff 42%,#ff4fb8 78%,#ffd23f);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 3px 0 rgba(255,255,255,.9)) drop-shadow(0 0 18px rgba(157,107,255,.55))}
+  .sub{margin:0 0 16px;font-size:12px;font-weight:800;letter-spacing:.42em;color:var(--ink-soft)}
+  h2{margin:0 0 14px;font-size:clamp(22px,3.6vw,30px);font-weight:900}
+  h2 small{font-size:13px;font-weight:700;color:var(--ink-soft);letter-spacing:.1em;margin-left:8px}
+
+  .keys{display:grid;gap:10px;margin:16px 0 6px}
+  .keys .row{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;color:var(--ink-soft)}
+  kbd{
+    display:inline-block;min-width:30px;text-align:center;padding:5px 9px;border-radius:9px;
+    background:linear-gradient(180deg,#fff,#eef3ff);border:1.5px solid #fff;
+    box-shadow:0 3px 0 #d8def7,0 5px 12px rgba(122,110,168,.22);
+    font:800 12px/1.1 "Segoe UI",system-ui,sans-serif;color:var(--ink);
+  }
+  .keys .row span.d{color:var(--ink)}
+  .tips{margin-top:14px;font-size:13px;line-height:1.65;color:var(--ink-soft);
+    background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(240,246,255,.7));
+    border-radius:16px;padding:12px 15px;border:1.5px dashed rgba(157,107,255,.45)}
+  .tips b{color:var(--purple)}
+
+  .btn-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+  button.big{
+    flex:1 1 auto;min-width:132px;cursor:pointer;font:inherit;font-weight:900;font-size:16px;
+    color:#fff;border:none;border-radius:999px;padding:15px 24px;letter-spacing:.04em;
+    background:linear-gradient(100deg,#1fd8ff,#9d6bff 48%,#ff4fb8);
+    background-size:180% 100%;box-shadow:0 12px 26px rgba(157,107,255,.42),inset 0 -3px 0 rgba(0,0,0,.08);
+    transition:transform .14s,box-shadow .24s,background-position .5s;
+    text-shadow:0 1px 6px rgba(0,0,0,.18);
+  }
+  button.big:hover{transform:translateY(-2px);background-position:100% 0;
+    box-shadow:0 16px 32px rgba(157,107,255,.5),inset 0 -3px 0 rgba(0,0,0,.08)}
+  button.big:active{transform:translateY(1px) scale(.985)}
+  button.ghost{
+    flex:0 1 auto;cursor:pointer;font:inherit;font-weight:800;font-size:14px;color:var(--ink);
+    background:rgba(255,255,255,.9);border:2px solid rgba(157,107,255,.28);
+    border-radius:999px;padding:13px 20px;transition:.16s;
+  }
+  button.ghost:hover{border-color:var(--purple);color:var(--purple);transform:translateY(-1px)}
+  button.tiny{cursor:pointer;font:inherit;font-weight:700;font-size:12px;color:var(--ink-soft);
+    background:none;border:none;text-decoration:underline dotted;padding:6px}
+  button.tiny:hover{color:var(--pink)}
+
+  /* ============================================================ 排行榜 */
+  .board{display:grid;gap:7px;margin-top:6px}
+  .board-row{
+    display:grid;grid-template-columns:34px 1fr auto 0.9fr;align-items:center;gap:10px;
+    padding:10px 14px;border-radius:14px;font-weight:700;
+    background:linear-gradient(100deg,rgba(255,255,255,.92),rgba(240,247,255,.72));
+    border:1.5px solid rgba(255,255,255,.9);box-shadow:0 4px 14px rgba(122,110,168,.1);
+  }
+  .board-row:nth-child(1) .b-rank{color:#ffb400;text-shadow:0 0 12px rgba(255,180,0,.6)}
+  .board-row:nth-child(2) .b-rank{color:#9db4c8;text-shadow:0 0 12px rgba(157,180,200,.6)}
+  .board-row:nth-child(3) .b-rank{color:#d98a5f;text-shadow:0 0 12px rgba(217,138,95,.6)}
+  .board-row.npc{opacity:.92}
+  .board-row.me{
+    border-color:var(--cyan);background:linear-gradient(100deg,rgba(230,250,255,.98),rgba(255,238,250,.9));
+    box-shadow:0 0 0 2px rgba(31,216,255,.35),0 8px 22px rgba(31,216,255,.28);
+    animation:mePulse 1.5s ease-in-out infinite;
+  }
+  @keyframes mePulse{50%{box-shadow:0 0 0 4px rgba(31,216,255,.22),0 8px 26px rgba(255,79,184,.3)}}
+  .b-rank{font-size:17px;text-align:center;color:var(--ink-soft)}
+  .b-name{display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .b-tag{font-style:normal;font-size:9px;font-weight:900;letter-spacing:.08em;color:#fff;
+    background:linear-gradient(100deg,var(--purple),var(--pink));padding:2px 6px;border-radius:999px}
+  .b-score{font-size:17px;font-weight:900;color:var(--purple);text-align:right}
+  .b-meta{font-size:11px;font-weight:700;color:var(--ink-soft);text-align:right;white-space:nowrap}
+  .board-empty{padding:20px;text-align:center;color:var(--ink-soft);font-size:14px;font-weight:600}
+  .board-wrap{margin-top:18px;border-top:2px dashed rgba(157,107,255,.25);padding-top:14px}
+
+  /* 结算统计 */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin:16px 0 4px}
+  .stat{background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(238,246,255,.8));
+    border-radius:16px;padding:12px 14px;border:1.5px solid #fff;box-shadow:0 6px 16px rgba(122,110,168,.12)}
+  .stat .k{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--ink-soft)}
+  .stat .v{font-size:22px;font-weight:900;color:var(--ink);margin-top:2px}
+  #over-score-big{font-size:clamp(44px,9vw,64px);font-weight:900;line-height:1;
+    background:linear-gradient(92deg,var(--cyan),var(--purple) 50%,var(--pink));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 2px 0 #fff) drop-shadow(0 0 16px rgba(31,216,255,.5))}
+  #over-rank-hint{font-size:13.5px;font-weight:700;color:var(--ink-soft);margin-top:12px}
+  #name-row{display:flex;gap:10px;margin-top:14px;align-items:center}
+  #name-input{
+    flex:1 1 auto;font:inherit;font-weight:800;font-size:16px;color:var(--ink);
+    background:rgba(255,255,255,.95);border:2px solid rgba(157,107,255,.3);border-radius:999px;
+    padding:13px 18px;outline:none;transition:.18s;min-width:0;
+  }
+  #name-input:focus{border-color:var(--cyan);box-shadow:0 0 0 4px rgba(31,216,255,.18)}
+  #save-done{display:none;margin-top:12px;font-weight:800;font-size:14px;color:#0f9e7a;
+    background:linear-gradient(100deg,rgba(127,240,213,.35),rgba(31,216,255,.22));
+    border:1.5px solid rgba(31,216,255,.35);border-radius:14px;padding:11px 15px}
+  #save-done.show{display:block;animation:panelIn .35s ease}
+  #menu-best-wrap{margin-top:14px;font-size:14px;font-weight:800;color:var(--ink-soft)}
+  #menu-best{color:var(--pink);font-size:18px}
+  .footer-note{margin-top:10px;font-size:11px;color:var(--ink-soft);opacity:.85;text-align:center}
+  body[data-state="playing"] .overlay,body[data-state="countdown"] .overlay{display:none!important}
+</style>
+</head>
+<body data-state="menu">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ============================= HUD ============================= -->
+  <div id="hud">
+    <div class="hud-card" id="hud-left">
+      <div class="label">SCORE 得分</div>
+      <div id="hud-score" class="num">0</div>
+      <div id="hud-sub">
+        <span>距离 <b id="hud-dist" class="num">0 m</b></span>
+        <span>能量珠 <b id="hud-orbs" class="num">0</b></span>
+      </div>
+    </div>
+
+    <div id="hud-right">
+      <div id="hud-best-wrap">最高分 <span id="hud-best" class="num">0</span></div>
+      <button class="hud-btn" id="btn-sound">🔊 音效开 (M)</button>
+    </div>
+
+    <div id="hud-lives">
+      <span class="heart">♥</span><span class="heart">♥</span><span class="heart">♥</span>
+    </div>
+
+    <div id="hud-speed">
+      <div class="label">SPEED 速度</div>
+      <div id="hud-speed-num" class="num">0 km/h</div>
+      <div id="hud-speed-track"><div id="hud-speed-fill"></div></div>
+    </div>
+
+    <div id="hud-combo">x1</div>
+    <button class="hud-btn" id="btn-pause" style="position:absolute;right:22px;bottom:96px">⏸ 暂停 (P)</button>
+  </div>
+
+  <div id="count"></div>
+  <div id="flash"></div>
+  <div id="fps"></div>
+
+  <!-- ============================= 开始菜单 ============================= -->
+  <div class="overlay show" id="menu">
+    <div class="panel">
+      <h1>霓虹跑酷</h1>
+      <p class="sub">N E O N &nbsp; P A R K O U R</p>
+      <div class="keys">
+        <div class="row"><kbd>←</kbd><kbd>→</kbd> <span class="d">/ <kbd>A</kbd><kbd>D</kbd> — 左右横移</span></div>
+        <div class="row"><kbd>空格</kbd> <span class="d">/ <kbd>W</kbd><kbd>↑</kbd> — 跳跃，空中再按一次触发二段跳</span></div>
+        <div class="row"><kbd>↓</kbd> <span class="d">/ <kbd>S</kbd><kbd>Shift</kbd> — 滑铲，钻过霓虹横杆</span></div>
+        <div class="row"><kbd>P</kbd> <span class="d">/ <kbd>Esc</kbd> — 暂停 · <kbd>M</kbd> — 静音 · <kbd>R</kbd> — 重开 · <kbd>F</kbd> — 性能信息</span></div>
+      </div>
+      <div class="tips">
+        顺着糖果赛道向前冲刺：<b>跳过路障</b>、<b>滑铲钻杆</b>、<b>左右绕开霓虹墩</b>，
+        收集能量珠可以把连击倍率堆到 <b>x8</b>。撞到障碍或掉进云海都会掉一颗心，三颗心用完就结束啦。
+      </div>
+      <div class="btn-row">
+        <button class="big" id="btn-start">开始跑酷 ▶</button>
+        <button class="ghost" id="btn-board">排行榜</button>
+        <button class="ghost" id="btn-sound-menu">🔊 音效开 (M)</button>
+      </div>
+      <div id="menu-best-wrap">本机最高分 <span id="menu-best" class="num">0</span></div>
+      <div class="footer-note">第三人称 3D 跑酷 · 画面与音效全部实时生成 · 无需联网</div>
+    </div>
+  </div>
+
+  <!-- ============================= 排行榜 ============================= -->
+  <div class="overlay" id="board-panel">
+    <div class="panel">
+      <h2>排行榜 <small>TOP 10 · 本机记录</small></h2>
+      <div class="board" id="board-list"></div>
+      <div class="btn-row">
+        <button class="big" id="btn-board-close">返回</button>
+        <button class="tiny" id="btn-board-clear">清空本机榜单</button>
+      </div>
+      <div class="footer-note">榜上的 <b>BOT</b> 标记是内置的街区 NPC 成绩，用来给你一个追赶目标。</div>
+    </div>
+  </div>
+
+  <!-- ============================= 暂停 ============================= -->
+  <div class="overlay" id="pause-panel">
+    <div class="panel">
+      <h2>已暂停 <small>歇一会儿</small></h2>
+      <div class="tips">按 <kbd>P</kbd> 或 <kbd>Esc</kbd> 继续。偷偷告诉你：起跳后马上滑铲，可以贴地加速过弯。</div>
+      <div class="btn-row">
+        <button class="big" id="btn-resume">继续 ▶</button>
+        <button class="ghost" id="btn-quit">回到主菜单</button>
+        <button class="ghost" id="btn-sound2">🔊 音效开 (M)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= 结算 ============================= -->
+  <div class="overlay" id="over">
+    <div class="panel">
+      <h2>本次成绩 <small>THIS RUN</small></h2>
+      <div id="over-score-big" class="num">0</div>
+      <div class="stats">
+        <div class="stat"><div class="k">距离</div><div class="v num" id="over-dist">0</div></div>
+        <div class="stat"><div class="k">能量珠</div><div class="v num" id="over-orbs">0</div></div>
+        <div class="stat"><div class="k">最高连击</div><div class="v num" id="over-combo">x1</div></div>
+        <div class="stat"><div class="k">本机最高</div><div class="v num" id="over-best">0</div></div>
+      </div>
+      <div id="over-rank-hint"></div>
+      <div id="name-row">
+        <input id="name-input" maxlength="12" placeholder="输入你的名字（最多 12 字）" autocomplete="off" spellcheck="false">
+        <button class="ghost" id="btn-save">保存成绩</button>
+      </div>
+      <div id="save-done"></div>
+      <div class="board-wrap" id="over-board-wrap">
+        <h2 style="font-size:16px">排行榜 <small>TOP 10</small></h2>
+        <div class="board" id="over-board"></div>
+      </div>
+      <div class="btn-row">
+        <button class="big" id="btn-retry">再跑一次 ↺</button>
+        <button class="ghost" id="btn-menu">主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== three.js（本地，离线可用） ===================== -->
+  <script src="three.min.js"></script>
+  <script src="js/00_core.js"></script>
+  <script src="js/10_audio.js"></script>
+  <script src="js/20_board.js"></script>
+  <script src="js/30_fx.js"></script>
+  <script src="js/40_world.js"></script>
+  <script src="js/50_player.js"></script>
+  <script src="js/60_game.js"></script>
+  <script>
+    (function () {
+      function boot() {
+        try {
+          window.game = new NP.Game();
+          window.game.init();
+        } catch (err) {
+          console.error(err);
+          var el = document.getElementById('menu');
+          if (el) {
+            el.innerHTML = '<div class="panel"><h2>初始化失败</h2><div class="tips">'
+              + String(err && err.message || err) + '</div></div>';
+          }
+        }
+      }
+      if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(boot, 0);
+      else window.addEventListener('DOMContentLoaded', boot);
+    })();
+  </script>
+</body>
+</html>

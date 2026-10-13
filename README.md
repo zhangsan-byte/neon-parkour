@@ -1,5 +1,7 @@
 # 霓虹跑酷 · NEON PARKOUR
 
+### 🎮 在线试玩：**https://zhangsan-byte.github.io/neon-parkour/**
+
 一个第三人称 3D 跑酷小游戏：**浅色小清新卡通画面 + 赛博朋克霓虹点缀**。
 糖果色的浮空赛道、粉彩霓虹城市、圆润的卡通小机器人，配上实时合成的音效与自适应 BGM。
 
@@ -54,6 +56,8 @@ https://<你的用户名>.github.io/neon-parkour/
 ```
 
 把网址发出去，任何人（含手机）点开就能玩，改完代码 `git push` 一下站点就更新。
+
+本项目的线上地址：<https://zhangsan-byte.github.io/neon-parkour/>（仓库：<https://github.com/zhangsan-byte/neon-parkour>）
 
 > 注意：`github.io` 在国内网络环境有时打不开或很慢。如果朋友主要在国内，优先用下面的方式 3。
 

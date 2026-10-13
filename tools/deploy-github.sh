@@ -21,16 +21,27 @@ die() { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------------------------------------------------------------- 前置检查
 command -v git >/dev/null || die "没找到 git"
-if ! command -v gh >/dev/null; then
+
+# 找到可用的 gh（Windows 上是 gh.exe，Git Bash 里 command -v gh 匹配不到）
+GH_BIN="${GH_BIN:-}"
+if [ -z "$GH_BIN" ]; then
+  for c in gh gh.exe; do
+    if command -v "$c" >/dev/null 2>&1; then GH_BIN="$c"; break; fi
+  done
+fi
+if [ -z "$GH_BIN" ]; then
   cat <<'EOF' >&2
 没找到 GitHub CLI（gh）。先装一个，任选一种：
   winget install --id GitHub.cli -e
   scoop install gh
   choco install gh
 安装后重开终端，再执行： gh auth login
+（也可以把 gh 可执行文件放在 PATH 里，或用 GH_BIN=/路径/gh 指定）
 EOF
   exit 1
 fi
+gh() { "$GH_BIN" "$@"; }        # 统一入口，兼容 gh / gh.exe
+
 gh auth status >/dev/null 2>&1 || die "还没登录 GitHub，请先执行： gh auth login"
 
 OWNER="$(gh api user --jq .login)"

@@ -126,6 +126,11 @@
     position:relative;overflow:hidden;animation:panelIn .42s cubic-bezier(.2,1.3,.4,1);
   }
   @keyframes panelIn{from{transform:translateY(26px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+  /* 面板高度上限：排行榜满 10 行时也不会把主按钮顶出屏幕 */
+  .panel{max-height:calc(100vh - 28px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+  .panel::-webkit-scrollbar{width:8px}
+  .panel::-webkit-scrollbar-thumb{background:rgba(157,107,255,.35);border-radius:99px}
+  #over-board,#board-list{max-height:min(210px,32vh);overflow-y:auto;scrollbar-width:thin}
   .panel::before{
     content:"";position:absolute;inset:-2px auto auto -2px;right:-2px;height:7px;
     background:linear-gradient(90deg,var(--mint),var(--cyan),var(--purple),var(--pink),var(--lemon));
@@ -300,6 +305,49 @@
     .b-meta { display: none; }
     h1 { font-size: 36px; }
   }
+  /* 矮屏（手机横屏等）：面板改成紧凑 + 竖向排布，保证主按钮在首屏可见 */
+  @media (max-height: 560px) {
+    .overlay { align-items: start; padding: 10px; }
+    .panel { padding: 14px 16px 16px; border-radius: 18px; display: flex; flex-direction: column; }
+    .panel::before { height: 5px; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 19px; margin-bottom: 8px; }
+    .sub { margin-bottom: 10px; font-size: 10px; letter-spacing: .3em; }
+    #over-score-big { font-size: 36px; }
+    .stats { grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 2px; }
+    .stat { padding: 7px 9px; border-radius: 12px; }
+    .stat .k { font-size: 9.5px; letter-spacing: .08em; }
+    .stat .v { font-size: 16px; }
+    #over-rank-hint { font-size: 12px; margin-top: 8px; }
+    #name-row { margin-top: 9px; }
+    #name-input { padding: 10px 14px; font-size: 14px; }
+    .board-wrap { margin-top: 10px; padding-top: 8px; }
+    #board-list, #over-board { max-height: 112px; overflow-y: auto; }
+    .board { gap: 5px; }
+    .board-row { padding: 6px 10px; font-size: 12.5px; border-radius: 11px; }
+    .b-score { font-size: 14px; }
+    .btn-row { margin-top: 10px; }
+    button.big { padding: 11px 16px; font-size: 14.5px; }
+    button.ghost { padding: 10px 15px; font-size: 13px; }
+    .tips { font-size: 12px; line-height: 1.5; padding: 8px 11px; margin-top: 8px; border-radius: 12px; }
+    .keys { gap: 6px; margin: 8px 0 4px; }
+    .keys .row { font-size: 12px; }
+    kbd { padding: 4px 7px; font-size: 11px; }
+    #menu-best-wrap { margin-top: 8px; font-size: 12.5px; }
+    .footer-note { display: none; }
+    /* 主按钮提到排行榜前面，避免按钮被挤到屏幕外 */
+    #over .btn-row { order: 5; }
+    #save-done { order: 4; }
+    #name-row { order: 3; }
+    #over-board-wrap { order: 9; }
+  }
+
+  /* 极窄 + 矮（横屏小手机）再把统计压成两列 */
+  @media (max-height: 430px) and (max-width: 760px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 26px; }
+  }
+
   .hint-touch { display: none; }
   body.is-touch .hint-kbd { display: none; }
   body.is-touch .hint-touch { display: grid; }
